@@ -331,6 +331,22 @@
     height: 1px;
     overflow: hidden;
   }
+  .spotify-hidden-wrap {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    top: -9999px;
+    left: -9999px;
+  }
+  .spotify-hidden-wrap iframe {
+    visibility: hidden !important;
+    width: 1px !important;
+    height: 1px !important;
+    border: 0 !important;
+  }
   .spotify-control {
     margin-top: 18px;
     display: flex;
@@ -494,7 +510,7 @@
 <body>
 
 <div id="app"></div>
-<div class="spotify-mount" id="spotify-mount"></div>
+<div class="spotify-hidden-wrap"><div id="spotify-mount"></div></div>
 
 <script>
 // ============== DATA ==============
