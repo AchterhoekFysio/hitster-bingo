@@ -322,24 +322,11 @@
     font-style: italic;
     opacity: 0.85;
   }
-  .spotify-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: #1DB954;
-    color: var(--white);
-    padding: 14px 24px;
-    border-radius: 50px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 16px;
+  .spotify-embed {
+    border-radius: 12px;
     margin-top: 16px;
-    transition: transform 0.15s;
-  }
-  .spotify-btn:hover { transform: scale(1.03); }
-  .spotify-btn:before {
-    content: "▶";
-    font-size: 18px;
+    max-width: 100%;
+    display: block;
   }
 
   .nav-buttons {
@@ -465,64 +452,64 @@
 const COLLEAGUES = [
   { name: "Maxime Jansen", first: "Maxime", role: "Secretaresse",
     anekdote: "Echte control freak — wil álles weten. En door pure enthousiasme vergeet ze nog wel eens een pas op de plaats te maken.",
-    lied: "Control", artiest: "Janet Jackson" },
+    lied: "Control", artiest: "Janet Jackson", spotifyId: "2tMkYJbCdaL8p9NDTU3ISu" },
   { name: "Jochem Geerts", first: "Jochem", role: "Kinderfysiotherapeut",
     anekdote: "Post-it plakker van de praktijk. En tevens — volgens eigen zeggen — de beste klusser van het stel. (Hmm, klopt dat wel?)",
-    lied: "If I Had A Hammer", artiest: "Trini Lopez" },
+    lied: "If I Had A Hammer", artiest: "Trini Lopez", spotifyId: "55G5lK3HtPUAmVXLG6KeI0" },
   { name: "Sam Kuiper", first: "Sam", role: "Regulier fysiotherapeut",
     anekdote: "Komt soms direct én heel subtiel uit de hoek (lees: niet altijd klant-proof). Vindt alles prima, grote liefhebber van groepstrainingen — niet dus. Gaat binnenkort werken op de nieuwe locatie in Groenlo.",
-    lied: "Sorry Not Sorry", artiest: "Demi Lovato" },
+    lied: "Sorry Not Sorry", artiest: "Demi Lovato", spotifyId: "7gvd8xj4QgPqbQSsn5pV7d" },
   { name: "Owen Essink", first: "Owen", role: "Regulier fysiotherapeut",
     anekdote: "Woont op de Lochemse Bult — of ís hij zélf de Lochemse Bult? Denkt goed, maar soms niet te moeilijk. En waar staat z'n Strava boordevol mee? Juist: HIIT.",
-    lied: "Eye Of The Tiger", artiest: "Survivor" },
+    lied: "Eye Of The Tiger", artiest: "Survivor", spotifyId: "2KH16WveTQWT6KOG9Rg6e2" },
   { name: "Max Buil", first: "Max", role: "Regulier fysiotherapeut",
     anekdote: "Wie kent hem niet. Blijf jezelf en ga niet té hoog vliegen. Wie wordt straks de interne drill-meister van de praktijk?",
-    lied: "Macho Man", artiest: "Village People" },
+    lied: "Macho Man", artiest: "Village People", spotifyId: "3wOJk31hFeYyc7Ex4J9VlQ" },
   { name: "Jolijn Duiverman", first: "Jolijn", role: "Kinderfysiotherapeut",
     anekdote: "Hoe zag háár eerste werkweek eruit? Iets met dextro-energie, een vleugje alzheimer-light en de sleutels kwijt. Maar verder: het toonbeeld van georganiseerd.",
-    lied: "Where Is My Mind?", artiest: "Pixies" },
+    lied: "Where Is My Mind?", artiest: "Pixies", spotifyId: "0KzAbK6nItSqNh8q70tb0K" },
   { name: "Daphne Maas", first: "Daphne", role: "Kinderfysiotherapeut • COPD",
     anekdote: "Praat met een mooi accent. Bij haar wordt opruimen al snel een tik — of bijna een dwangmatigheid. Wij kunnen je daar trouwens prima bij helpen…",
-    lied: "Clean", artiest: "Taylor Swift" },
+    lied: "Clean", artiest: "Taylor Swift", spotifyId: "4bXCcoesMt8u99xMsbLr9U" },
   { name: "Hieke Westerhof", first: "Hieke", role: "Regulier fysiotherapeut",
     anekdote: "Enthousiast tot in de tenen, en kan lekker in volume aanwezig zijn.",
-    lied: "Pump Up The Volume", artiest: "MARRS" },
+    lied: "Pump Up The Volume", artiest: "MARRS", spotifyId: "12GdSIVeLNZ5PzJZxLBlOG" },
   { name: "Simon Vos", first: "Simon", role: "Regulier fysiotherapeut • Schouder specialist i.o.",
     anekdote: "Welke aandoening heeft hij eigenlijk? ADHD? Of is hij gewoon eindeloos enthousiast?",
-    lied: "Hyperactive!", artiest: "Robert Palmer" },
+    lied: "Hyperactive!", artiest: "Thomas Dolby", spotifyId: "7kRX2WhIfKE6z6iATpRsBd" },
   { name: "Chantal Gerritsen", first: "Chantal", role: "Fitcoach • SmartFITT Doetinchem",
     anekdote: "Wat heeft ze écht en wat heeft ze niet? ECHT ADHD — check. Maar nog geen vriend (die stuitert vast nog ergens rond). Qua opruimen: het exacte tegenovergestelde van een eerdere collega.",
-    lied: "Single Ladies (Put A Ring On It)", artiest: "Beyoncé" },
+    lied: "Single Ladies (Put A Ring On It)", artiest: "Beyoncé", spotifyId: "5R9a4t5t5O0IsznsrKPVro" },
   { name: "Dulet Carrelo de Oliveira-Meinen", first: "Dulet", role: "Fitcoach • SmartFITT Doetinchem",
     anekdote: "De enige in het team die al oma is! En weet je wat ze vroeger deed voor de kost? Kapper.",
-    lied: "Hair", artiest: "The Cowsills" },
+    lied: "Hair", artiest: "The Cowsills", spotifyId: "5pjlEqTAOq1snQlcSMgF14" },
   { name: "Romée Milenkovic", first: "Romée", role: "Fysiotherapeut • Voedingsconsulent i.o.",
     anekdote: "Wie kan haar nou écht doorgronden? Leuk én lekker direct.",
-    lied: "Black Magic Woman", artiest: "Santana" },
+    lied: "Black Magic Woman", artiest: "Santana", spotifyId: "4nmne9J3YCEdhvjTzwiAgu" },
   { name: "Vera Hulshof", first: "Vera", role: "Fysiotherapeut • GLI-coach",
     anekdote: "Was het langst uit de running van iedereen in het team. En weet meer van whiplash-klachtenbeelden dan wie ook hier.",
-    lied: "Whip It", artiest: "Devo" },
+    lied: "Whip It", artiest: "Devo", spotifyId: "4sscDOZCkbLSlDqcCgUJnX" },
   { name: "Betsy Schadron-Pruijs", first: "Betsy", role: "Manuele therapie Marsman • Oedeemtherapie",
     anekdote: "Lekker ouwehoeren is haar tweede natuur. Maar de kachel… die krijg je bij haar niet meer aan.",
-    lied: "Cold As Ice", artiest: "Foreigner" },
+    lied: "Cold As Ice", artiest: "Foreigner", spotifyId: "7vidktgNZFQylTgH1GEnMs" },
   { name: "Janny Reijers-Cent", first: "Janny", role: "Fysiotherapeut • Claudicatio Intermittens",
     anekdote: "De échte digibeet in ons midden. Bij twijfel: stekker eruit en weer erin.",
-    lied: "Mr. Roboto", artiest: "Styx" },
+    lied: "Mr. Roboto", artiest: "Styx", spotifyId: "7C0rG4oWO7VeZcffyW1sK9" },
   { name: "Evi Roes", first: "Evi", role: "Regulier fysiotherapeut",
     anekdote: "Durft de meeste vragen te stellen tijdens overleggen. En sinds kort speelt ze al in het senioren-voetbal!",
-    lied: "Forever Young", artiest: "Alphaville" },
+    lied: "Forever Young", artiest: "Alphaville", spotifyId: "46CYTg1gRDl3Aj9LCuOEbe" },
   { name: "Tom Bruins", first: "Tom", role: "Regulier fysiotherapeut • Schouder specialist",
     anekdote: "De schouder-fluisteraar van het team. Lekker laagdrempelig om op te leunen…",
-    lied: "Lean On Me", artiest: "Bill Withers" },
+    lied: "Lean On Me", artiest: "Bill Withers", spotifyId: "5zCJvrT3C7cIfHsR5iG95l" },
   { name: "Maryse Gerrits", first: "Maryse", role: "Fysiotherapeut • GLI-coach",
     anekdote: "Coacht onze cliënten naar een lichtere leefstijl. Zelf gaat ze er ook helemaal voor.",
-    lied: "Lose Yourself", artiest: "Eminem" },
+    lied: "Lose Yourself", artiest: "Eminem", spotifyId: "5Z01UMMf7V1o0MzF86s6WJ" },
   { name: "Linda Overbeek-Arnold", first: "Linda", role: "Regulier fysiotherapeut • Dry Needling",
     anekdote: "Bij haar krijg je gegarandeerd een prik (of twee). De Dry Needling-koningin van de praktijk.",
-    lied: "Needles And Pins", artiest: "The Searchers" },
+    lied: "Needles And Pins", artiest: "The Searchers", spotifyId: "0yGEtWW1560pa3KHMzh0uc" },
   { name: "Emma Lukassen", first: "Emma", role: "Team Achterhoek Fysio",
     anekdote: "De nieuwste aanwinst van het team — vers in de praktijk en al niet meer weg te denken.",
-    lied: "Emma", artiest: "Hot Chocolate" },
+    lied: "Emma", artiest: "Hot Chocolate", spotifyId: "7xeQiFzM7naf6IQPyvs8cg" },
 ];
 
 const NAMES = COLLEAGUES.map(c => c.first);
@@ -818,7 +805,7 @@ function renderHost() {
 
   const c = COLLEAGUES[hostState.round];
   const total = COLLEAGUES.length;
-  const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(c.lied + ' ' + c.artiest)}`;
+  // Spotify embed (no external tab — keeps account hidden)
 
   let content;
   if (!hostState.revealed) {
@@ -826,9 +813,7 @@ function renderHost() {
       <div class="host-panel">
         <div class="label">Anekdote / Hint</div>
         <div class="anekdote">${escapeHtml(c.anekdote)}</div>
-        <a href="${spotifyUrl}" target="_blank" class="spotify-btn">
-          Open op Spotify — speel het nummer
-        </a>
+        <iframe class="spotify-embed" src="https://open.spotify.com/embed/track/${c.spotifyId}?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
       </div>
     `;
   } else {
