@@ -698,14 +698,16 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 
 function initSpotifyController(uri) {
   if (!spotifyAPI) { pendingTrackUri = uri; return; }
-  const element = document.getElementById("spotify-mount");
-  if (!element) return;
   if (spotifyController) {
     spotifyController.loadUri(uri);
     spotifyPlayingState = false;
     const np = document.getElementById("now-playing");
     if (np) np.classList.remove("active");
-  } else {
+    return;
+  }
+  const element = document.getElementById("spotify-mount");
+  if (!element) return;
+  {
     spotifyAPI.createController(element, { uri: uri, width: "100%", height: "80" }, (EmbedController) => {
       spotifyController = EmbedController;
       EmbedController.addListener("playback_update", (e) => {
