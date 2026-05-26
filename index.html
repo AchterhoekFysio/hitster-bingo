@@ -591,6 +591,13 @@ function checkBingo(marked) {
   return false;
 }
 
+// ============== STATE ==============
+let hostState = {
+  round: 0,
+  revealed: false,
+  ended: false,
+};
+
 // ============== MODE DETECTION ==============
 const urlParams = new URLSearchParams(window.location.search);
 const isHost = urlParams.has('host');
@@ -771,11 +778,6 @@ function escapeHtml(str) {
 }
 
 // ============== HOST MODE ==============
-let hostState = {
-  round: 0,        // 0-19
-  revealed: false, // shown name yet?
-  ended: false,
-};
 
 function initHost() {
   renderHost();
