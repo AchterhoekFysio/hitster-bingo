@@ -333,18 +333,18 @@
   }
   .spotify-hidden-wrap {
     position: absolute;
-    visibility: hidden;
+    opacity: 0;
     pointer-events: none;
-    width: 1px;
-    height: 1px;
+    width: 100%;
+    height: 80px;
     overflow: hidden;
-    top: -9999px;
-    left: -9999px;
+    top: 0;
+    left: 0;
+    z-index: -1;
   }
   .spotify-hidden-wrap iframe {
-    visibility: hidden !important;
-    width: 1px !important;
-    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
     border: 0 !important;
   }
   .spotify-control {
@@ -702,6 +702,7 @@ function initSpotifyController(uri) {
   if (!element) return;
   if (spotifyController) {
     spotifyController.loadUri(uri);
+    spotifyPlayingState = false;
     const np = document.getElementById("now-playing");
     if (np) np.classList.remove("active");
   } else {
@@ -717,11 +718,19 @@ function initSpotifyController(uri) {
   }
 }
 
+let spotifyPlayingState = false;
 function spotifyToggle() {
-  if (spotifyController) spotifyController.togglePlay();
+  if (!spotifyController) return;
+  spotifyController.togglePlay();
+  spotifyPlayingState = !spotifyPlayingState;
+  const np = document.getElementById("now-playing");
+  if (np) np.classList.toggle("active", spotifyPlayingState);
 }
 function spotifyPause() {
   if (spotifyController) spotifyController.pause();
+  spotifyPlayingState = false;
+  const np = document.getElementById("now-playing");
+  if (np) np.classList.remove("active");
 }
 
 // ============== MODE DETECTION ==============
