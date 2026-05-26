@@ -434,11 +434,90 @@
     letter-spacing: 1px;
   }
 
+  /* Mode selector op welkom-scherm */
+  .mode-selector {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 340px;
+  }
+  .mode-option { flex: 1; cursor: pointer; }
+  .mode-option input[type="radio"] { display: none; }
+  .mode-card {
+    background: var(--dark2);
+    border: 2px solid var(--grey);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .mode-option input[type="radio"]:checked + .mode-card {
+    border-color: var(--gold);
+    background: var(--dark);
+    box-shadow: 0 0 0 2px rgba(244, 184, 96, 0.2);
+  }
+  .mode-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: 0.5px;
+  }
+  .mode-card-sub {
+    font-size: 11px;
+    color: var(--grey);
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+
+  /* Song cells (dubbel-modus) */
+  .cell.song {
+    background: #fdebd0;
+    font-style: italic;
+    font-size: clamp(8px, 1.9vw, 11px);
+  }
+  .cell.song::before {
+    content: "♫ ";
+    font-style: normal;
+    color: #1DB954;
+  }
+  .cell.song.marked {
+    background: var(--red);
+    font-style: normal;
+  }
+  .cell.song.marked::before {
+    color: var(--gold);
+  }
+
+  /* Pattern badges (gehaalde bingo-lijnen) */
+  .patterns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 4px;
+    min-height: 20px;
+  }
+  .pattern-badge {
+    background: var(--gold);
+    color: var(--dark);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .pattern-pending {
+    color: var(--grey);
+    font-size: 11px;
+    font-style: italic;
+  }
+
   /* Mobile tweaks */
   @media (max-width: 480px) {
     body { padding: 8px; }
     .header { margin-bottom: 8px; }
     .cell { font-size: 11px; padding: 2px; }
+    .cell.song { font-size: 9px; }
     .host-panel { padding: 16px; min-height: 40vh; }
   }
 </style>
@@ -525,9 +604,22 @@ function mulberry32(seed) {
   };
 }
 
-function generateCardSquares(seed) {
+function generateCardSquares(seed, mode) {
   const rng = mulberry32(seed);
-  // 20 names + 4 random repeats = 24 squares
+  if (mode === 'dubbel') {
+    // Pool: 20 names + 20 song titles = 40 items, pick 24 random
+    const pool = [];
+    COLLEAGUES.forEach(c => {
+      pool.push({ type: 'naam', text: c.first, match: 'naam:' + c.first });
+      pool.push({ type: 'lied', text: c.lied, match: 'lied:' + c.lied });
+    });
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 24);
+  }
+  // Klassieke modus: 20 namen + 4 willekeurig herhaalde
   const names = NAMES.slice();
   for (let i = names.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -537,12 +629,12 @@ function generateCardSquares(seed) {
   for (let i = 0; i < 4; i++) {
     extras.push(NAMES[Math.floor(rng() * NAMES.length)]);
   }
-  const squares = [...names, ...extras];
-  for (let i = squares.length - 1; i > 0; i--) {
+  const all = [...names, ...extras];
+  for (let i = all.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [squares[i], squares[j]] = [squares[j], squares[i]];
+    [all[i], all[j]] = [all[j], all[i]];
   }
-  return squares;
+  return all.map(name => ({ type: 'naam', text: name, match: 'naam:' + name }));
 }
 
 function buildCellGrid(squares) {
@@ -553,9 +645,9 @@ function buildCellGrid(squares) {
     const row = [];
     for (let c = 0; c < 5; c++) {
       if (r === 2 && c === 2) {
-        row.push({ name: null, isFree: true });
+        row.push({ isFree: true, type: null, text: 'FREE', match: 'free' });
       } else {
-        row.push({ name: squares[idx++], isFree: false });
+        row.push({ ...squares[idx++], isFree: false });
       }
     }
     cells.push(row);
@@ -563,24 +655,41 @@ function buildCellGrid(squares) {
   return cells;
 }
 
-function checkBingo(marked) {
-  // marked is 5x5 booleans, center always marked
+// Progressive bingo patterns
+const PATTERN_LABELS = {
+  diagonal:   { title: 'DIAGONAAL!',  sub: '5 op een schuine lijn' },
+  horizontal: { title: 'HORIZONTAAL!', sub: '5 op een horizontale rij' },
+  vertical:   { title: 'VERTICAAL!',   sub: '5 op een verticale lijn' },
+  full:       { title: 'VOLLE KAART!', sub: 'Alle 25 vakjes vol — JACKPOT!' },
+};
+const PATTERN_ORDER = ['diagonal', 'horizontal', 'vertical', 'full'];
+
+function checkPatterns(marked) {
   const m = marked.map(r => r.slice());
-  m[2][2] = true;
+  m[2][2] = true; // FREE center always marked
+  const found = new Set();
+  // Diagonal (either diagonal counts)
+  if ([0,1,2,3,4].every(i => m[i][i]) || [0,1,2,3,4].every(i => m[i][4-i])) {
+    found.add('diagonal');
+  }
+  // Horizontal (any row)
   for (let r = 0; r < 5; r++) {
-    if (m[r].every(x => x)) return true;
+    if (m[r].every(x => x)) { found.add('horizontal'); break; }
   }
+  // Vertical (any column)
   for (let c = 0; c < 5; c++) {
-    if ([0,1,2,3,4].every(r => m[r][c])) return true;
+    if ([0,1,2,3,4].every(r => m[r][c])) { found.add('vertical'); break; }
   }
-  if ([0,1,2,3,4].every(i => m[i][i])) return true;
-  if ([0,1,2,3,4].every(i => m[i][4-i])) return true;
-  return false;
+  // Full card
+  if (m.every(row => row.every(x => x))) {
+    found.add('full');
+  }
+  return found;
 }
 
 // ============== STATE ==============
 let hostState = {
-  round: 0,
+  round: 0,        // 0-19
   revealed: false,
   ended: false,
 };
@@ -619,10 +728,28 @@ function renderPlayerNameInput() {
       <div class="sub">Achterhoek Fysio</div>
     </div>
     <div class="player-name-screen">
-      <div style="text-align:center;color:var(--cream);font-size:16px;line-height:1.5;max-width:300px;">
-        Welkom! Vul je naam in zodat je kaart wordt onthouden.
+      <div style="text-align:center;color:var(--cream);font-size:16px;line-height:1.5;max-width:320px;">
+        Welkom! Vul je naam in en kies een speelmodus.
       </div>
       <input type="text" id="name-input" placeholder="Jouw naam" autocomplete="off" maxlength="30">
+
+      <div class="mode-selector">
+        <label class="mode-option">
+          <input type="radio" name="mode" value="namen" checked>
+          <div class="mode-card">
+            <div class="mode-card-title">Klassiek</div>
+            <div class="mode-card-sub">Alleen namen</div>
+          </div>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="dubbel">
+          <div class="mode-card">
+            <div class="mode-card-title">Dubbel</div>
+            <div class="mode-card-sub">Namen + nummers</div>
+          </div>
+        </label>
+      </div>
+
       <button onclick="savePlayerName()">START</button>
       <button class="skip" onclick="savePlayerName(true)">Skip → speel anoniem</button>
     </div>
@@ -637,6 +764,10 @@ function savePlayerName(skip) {
   const input = document.getElementById('name-input');
   const name = skip ? 'Speler' : (input?.value.trim() || 'Speler');
   localStorage.setItem('bingo_name', name);
+  // Save chosen mode
+  const modeInput = document.querySelector('input[name="mode"]:checked');
+  const mode = modeInput ? modeInput.value : 'namen';
+  localStorage.setItem('bingo_mode', mode);
   // Generate unique seed per player
   if (!localStorage.getItem('bingo_seed')) {
     const seed = Math.floor(Math.random() * 1000000) + Date.now() % 100000;
@@ -648,29 +779,37 @@ function savePlayerName(skip) {
 function renderPlayerCard() {
   const app = document.getElementById('app');
   const name = localStorage.getItem('bingo_name') || 'Speler';
+  const mode = localStorage.getItem('bingo_mode') || 'namen';
   const seed = parseInt(localStorage.getItem('bingo_seed'));
-  const squares = generateCardSquares(seed);
+  const squares = generateCardSquares(seed, mode);
   const grid = buildCellGrid(squares);
   let marked = JSON.parse(localStorage.getItem('bingo_marked') || 'null');
   if (!marked) {
     marked = Array(5).fill().map(() => Array(5).fill(false));
     marked[2][2] = true;
   }
+  const achieved = JSON.parse(localStorage.getItem('bingo_achieved') || '[]');
+
+  const modeLabel = mode === 'dubbel' ? 'Dubbel-modus (namen + nummers)' : 'Klassiek (alleen namen)';
+  const tapHint = mode === 'dubbel'
+    ? 'Tik op een naam óf nummer dat hoort bij wat je hoort.'
+    : 'Tik op een naam om af te vinken.';
 
   app.innerHTML = `
     <div class="header">
       <h1>HITSTER BINGO</h1>
-      <div class="sub">Achterhoek Fysio</div>
+      <div class="sub">Achterhoek Fysio • ${escapeHtml(modeLabel)}</div>
     </div>
-    <div class="player-greeting">Hé ${escapeHtml(name)}! 🎵 Tik op een naam om af te vinken.</div>
+    <div class="player-greeting">Hé ${escapeHtml(name)}! ${tapHint}</div>
     <div class="card" id="bingo-card"></div>
     <div class="footer">
+      <div class="patterns" id="patterns"></div>
       <div class="progress" id="progress"></div>
       <button onclick="resetCard()">🔄 Nieuwe kaart</button>
     </div>
     <div class="bingo-overlay" id="bingo-overlay">
-      <h1>BINGO!</h1>
-      <p>Roep nu hard <strong>BINGO!</strong> zodat iedereen het hoort.<br>De host komt controleren.</p>
+      <h1 id="bingo-title">BINGO!</h1>
+      <p id="bingo-subtitle">Roep nu hard <strong>BINGO!</strong></p>
       <button onclick="closeBingoOverlay()">Doorgaan</button>
     </div>
   `;
@@ -680,39 +819,46 @@ function renderPlayerCard() {
     for (let c = 0; c < 5; c++) {
       const cell = grid[r][c];
       const div = document.createElement('div');
-      div.className = 'cell' + (cell.isFree ? ' free' : '') + (marked[r][c] ? ' marked' : '');
-      div.textContent = cell.isFree ? 'FREE' : cell.name;
+      let cls = 'cell';
+      if (cell.isFree) cls += ' free';
+      if (cell.type === 'lied') cls += ' song';
+      if (marked[r][c]) cls += ' marked';
+      div.className = cls;
+      div.textContent = cell.isFree ? 'FREE' : cell.text;
       div.dataset.r = r;
       div.dataset.c = c;
-      div.dataset.name = cell.name || '';
+      div.dataset.match = cell.match || '';
       if (!cell.isFree) {
-        div.addEventListener('click', () => toggleCell(r, c, cell.name));
+        const m = cell.match;
+        div.addEventListener('click', () => toggleCell(r, c, m));
       }
       cardEl.appendChild(div);
     }
   }
 
   updateProgress();
+  renderAchievedPatterns(achieved);
 }
 
-function toggleCell(r, c, name) {
+function toggleCell(r, c, match) {
   let marked = JSON.parse(localStorage.getItem('bingo_marked') || 'null');
   if (!marked) {
     marked = Array(5).fill().map(() => Array(5).fill(false));
   }
   marked[2][2] = true;
 
-  // Mark/unmark ALL occurrences of this name (since a name can appear twice)
+  const mode = localStorage.getItem('bingo_mode') || 'namen';
   const seed = parseInt(localStorage.getItem('bingo_seed'));
-  const squares = generateCardSquares(seed);
+  const squares = generateCardSquares(seed, mode);
   const grid = buildCellGrid(squares);
 
   const currentlyMarked = marked[r][c];
   const newState = !currentlyMarked;
 
+  // Toggle ALL cells with the same match (covers duplicate names in klassiek)
   for (let rr = 0; rr < 5; rr++) {
     for (let cc = 0; cc < 5; cc++) {
-      if (grid[rr][cc].name === name) {
+      if (grid[rr][cc].match === match) {
         marked[rr][cc] = newState;
       }
     }
@@ -731,8 +877,19 @@ function toggleCell(r, c, name) {
 
   updateProgress();
 
-  if (newState && checkBingo(marked)) {
-    showBingoOverlay();
+  // Check for NEW pattern achievements
+  if (newState) {
+    const patterns = checkPatterns(marked);
+    let achieved = JSON.parse(localStorage.getItem('bingo_achieved') || '[]');
+    for (const p of PATTERN_ORDER) {
+      if (patterns.has(p) && !achieved.includes(p)) {
+        achieved.push(p);
+        localStorage.setItem('bingo_achieved', JSON.stringify(achieved));
+        renderAchievedPatterns(achieved);
+        showBingoOverlay(p);
+        return; // Show one celebration at a time
+      }
+    }
   }
 }
 
@@ -744,170 +901,18 @@ function updateProgress() {
   if (el) el.textContent = `${count} / 25 vakjes gemarkeerd`;
 }
 
-function showBingoOverlay() {
-  document.getElementById('bingo-overlay').classList.add('show');
-}
-function closeBingoOverlay() {
-  document.getElementById('bingo-overlay').classList.remove('show');
-}
-
-function resetCard() {
-  if (confirm('Nieuwe kaart? Je huidige voortgang wordt gewist.')) {
-    localStorage.removeItem('bingo_marked');
-    const seed = Math.floor(Math.random() * 1000000) + Date.now() % 100000;
-    localStorage.setItem('bingo_seed', seed);
-    renderPlayerCard();
-  }
-}
-
-function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ============== HOST MODE ==============
-
-function initHost() {
-  renderHost();
-  document.addEventListener('keydown', handleHostKeys);
-
-  // Mode link to switch to player
-  const link = document.createElement('a');
-  link.href = window.location.pathname;
-  link.className = 'mode-link';
-  link.textContent = 'speler-modus';
-  document.body.appendChild(link);
-}
-
-function handleHostKeys(e) {
-  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
-    e.preventDefault();
-    hostNext();
-  } else if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    hostPrev();
-  } else if (e.key.toLowerCase() === 'q') {
-    toggleQR();
-  }
-}
-
-function renderHost() {
-  const app = document.getElementById('app');
-  if (hostState.ended) {
-    app.innerHTML = `
-      <div class="end-screen">
-        <h2>BEDANKT VOOR HET MEESPELEN!</h2>
-        <p>Team Achterhoek Fysio • ♫ Tot de volgende borrel! ♫</p>
-        <button onclick="restartHost()">⟲ Speel opnieuw</button>
-      </div>
-    `;
-    return;
-  }
-
-  const c = COLLEAGUES[hostState.round];
-  const total = COLLEAGUES.length;
-  // Spotify embed (no external tab — keeps account hidden)
-
-  let content;
-  if (!hostState.revealed) {
-    content = `
-      <div class="host-panel">
-        <div class="label">Anekdote / Hint</div>
-        <div class="anekdote">${escapeHtml(c.anekdote)}</div>
-        <iframe class="spotify-embed" src="https://open.spotify.com/embed/track/${c.spotifyId}?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-      </div>
-    `;
+function renderAchievedPatterns(achieved) {
+  const el = document.getElementById('patterns');
+  if (!el) return;
+  if (!achieved || achieved.length === 0) {
+    el.innerHTML = '<span class="pattern-pending">Nog geen bingo — speel voor diagonaal!</span>';
   } else {
-    content = `
-      <div class="host-panel">
-        <div class="label">Dit was…</div>
-        <div class="reveal-name">${escapeHtml(c.name.toUpperCase())}</div>
-        <div class="reveal-role">${escapeHtml(c.role)}</div>
-        <div class="song-box">
-          <div class="song-label">♫  Het nummer was</div>
-          <div class="song-title">"${escapeHtml(c.lied)}"</div>
-          <div class="song-artist">— ${escapeHtml(c.artiest)}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  app.innerHTML = `
-    <div class="host-controls-top">
-      <div class="round-counter">RONDE ${hostState.round + 1} / ${total}</div>
-      <button class="qr-toggle" onclick="toggleQR()">📱 Toon QR voor spelers</button>
-    </div>
-    ${content}
-    <div class="nav-buttons">
-      <button class="btn-prev" onclick="hostPrev()" ${hostState.round === 0 && !hostState.revealed ? 'disabled style="opacity:0.4"' : ''}>← Vorige</button>
-      ${!hostState.revealed
-        ? `<button class="btn-reveal" onclick="hostNext()">✨ Onthul de naam</button>`
-        : `<button class="btn-next" onclick="hostNext()">${hostState.round === total - 1 ? '🏆 Afsluiten' : 'Volgende ronde →'}</button>`
-      }
-    </div>
-    <div class="qr-overlay" id="qr-overlay">
-      <h2>📱 Scan om mee te spelen</h2>
-      <p>Scan deze QR-code met je telefoon. Je krijgt automatisch een unieke bingokaart.</p>
-      <div class="qr-box" id="qr-box"></div>
-      <div class="qr-url" id="qr-url"></div>
-      <button class="qr-close" onclick="toggleQR()">Sluiten</button>
-    </div>
-  `;
-}
-
-function hostNext() {
-  if (hostState.ended) return;
-  if (!hostState.revealed) {
-    hostState.revealed = true;
-  } else if (hostState.round < COLLEAGUES.length - 1) {
-    hostState.round++;
-    hostState.revealed = false;
-  } else {
-    hostState.ended = true;
-  }
-  renderHost();
-}
-
-function hostPrev() {
-  if (hostState.ended) {
-    hostState.ended = false;
-    renderHost();
-    return;
-  }
-  if (hostState.revealed) {
-    hostState.revealed = false;
-  } else if (hostState.round > 0) {
-    hostState.round--;
-    hostState.revealed = true;
-  }
-  renderHost();
-}
-
-function restartHost() {
-  hostState = { round: 0, revealed: false, ended: false };
-  renderHost();
-}
-
-function toggleQR() {
-  const overlay = document.getElementById('qr-overlay');
-  if (!overlay) return;
-  if (overlay.classList.contains('show')) {
-    overlay.classList.remove('show');
-  } else {
-    const playerUrl = window.location.origin + window.location.pathname;
-    const box = document.getElementById('qr-box');
-    const urlEl = document.getElementById('qr-url');
-    box.innerHTML = '';
-    urlEl.textContent = playerUrl;
-    try {
-      new QRCode(box, { text: playerUrl, width: 280, height: 280,
-        colorDark: '#1a1a1a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-    } catch(e) {
-      box.innerHTML = '<div style="color:#1a1a1a;padding:30px;text-align:center;">QR niet beschikbaar.<br>Deel de URL hieronder.</div>';
-    }
-    overlay.classList.add('show');
+    el.innerHTML = achieved.map(p =>
+      `<span class="pattern-badge">✓ ${PATTERN_LABELS[p].title}</span>`
+    ).join('');
   }
 }
-</script>
 
-</body>
-</html>
+function showBingoOverlay(pattern) {
+  const label = PATTERN_LABELS[pattern] || { title: 'BINGO!', sub: '' };
+  document
