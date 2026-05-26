@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#1a1a1a">
 <title>Hitster Bingo • Achterhoek Fysio</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
   :root {
     --dark: #1a1a1a;
@@ -322,12 +323,40 @@
     font-style: italic;
     opacity: 0.85;
   }
-  .spotify-embed {
-    border-radius: 12px;
-    margin-top: 16px;
-    max-width: 100%;
-    display: block;
+  .spotify-mount {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
   }
+  .spotify-control {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .spotify-play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #1DB954;
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .spotify-play-btn:hover { background: #1ed760; transform: scale(1.03); }
+  .spotify-play-btn:active { transform: scale(0.97); }
+  .spotify-play-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .spotify-hint { color: var(--grey); font-size: 12px; font-style: italic; }
 
   .nav-buttons {
     display: flex;
@@ -465,6 +494,7 @@
 <body>
 
 <div id="app"></div>
+<div class="spotify-mount" id="spotify-mount"></div>
 
 <script>
 // ============== DATA ==============
@@ -617,6 +647,36 @@ let hostState = {
   revealed: false,
   ended: false,
 };
+
+// ============== SPOTIFY IFRAME API ==============
+let spotifyAPI = null;
+let spotifyController = null;
+let pendingTrackUri = null;
+
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  spotifyAPI = IFrameAPI;
+  if (pendingTrackUri) { initSpotifyController(pendingTrackUri); pendingTrackUri = null; }
+};
+
+function initSpotifyController(uri) {
+  if (!spotifyAPI) { pendingTrackUri = uri; return; }
+  const element = document.getElementById("spotify-mount");
+  if (!element) return;
+  if (spotifyController) {
+    spotifyController.loadUri(uri);
+  } else {
+    spotifyAPI.createController(element, { uri: uri, width: "100%", height: "80" }, (EmbedController) => {
+      spotifyController = EmbedController;
+    });
+  }
+}
+
+function spotifyToggle() {
+  if (spotifyController) spotifyController.togglePlay();
+}
+function spotifyPause() {
+  if (spotifyController) spotifyController.pause();
+}
 
 // ============== MODE DETECTION ==============
 const urlParams = new URLSearchParams(window.location.search);
@@ -871,7 +931,7 @@ function renderHost() {
       <div class="host-panel">
         <div class="label">Anekdote / Hint</div>
         <div class="anekdote">${escapeHtml(c.anekdote)}</div>
-        <iframe class="spotify-embed" src="https://open.spotify.com/embed/track/${c.spotifyId}?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        <div class="spotify-control"><button class="spotify-play-btn" onclick="spotifyToggle()"><svg viewBox="0 0 168 168" fill="currentColor"><path d="M83.996.277C37.747.277.253 37.77.253 84.019c0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l.001-.004zm38.404 120.78a5.217 5.217 0 01-7.18 1.73c-19.662-12.01-44.414-14.73-73.564-8.07a5.222 5.222 0 01-6.249-3.93 5.213 5.213 0 013.926-6.25c31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-.903-8.148-4.35a6.538 6.538 0 014.354-8.143c30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-.001zm.88-23.744c-3.223-1.914-8.54-2.09-11.618-1.156-.495.15-1.018-.13-1.167-.625-.149-.495.13-1.017.626-1.167 3.532-1.072 9.404-.865 13.115 1.338.445.264.591.838.327 1.282-.264.443-.84.59-1.283.328z"/></svg>Speel het nummer</button><span class="spotify-hint">Klik nog eens om te pauzeren</span></div>
       </div>
     `;
   } else {
@@ -910,6 +970,11 @@ function renderHost() {
       <button class="qr-close" onclick="toggleQR()">Sluiten</button>
     </div>
   `;
+  if (!hostState.revealed) {
+    initSpotifyController("spotify:track:" + c.spotifyId);
+  } else {
+    spotifyPause();
+  }
 }
 
 function hostNext() {
