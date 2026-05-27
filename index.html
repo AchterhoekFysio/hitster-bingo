@@ -1014,7 +1014,7 @@ function checkTweeBingo() {
   for (const p of all) {
     if (p.v && !achieved.includes(p.k)) {
       achieved.push(p.k);
-      try { showBingoOverlay(p.l); } catch (e) { alert(p.l); }
+      try { if (typeof showBingoOverlay === "function") showBingoOverlay(p.l); else { const b = document.createElement("div"); b.textContent = "🎉 " + p.l; b.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--coral);color:white;padding:14px 24px;border-radius:8px;z-index:9999;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.4);"; document.body.appendChild(b); setTimeout(()=>b.remove(), 4000); } } catch (e) { console.log("Bingo:", p.l); }
     }
   }
   localStorage.setItem('bingo_achieved_twee', JSON.stringify(achieved));
