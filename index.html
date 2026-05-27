@@ -851,8 +851,8 @@ function renderPlayerNameInput() {
       </div>
       <input type="text" id="name-input" placeholder="Jouw naam" autocomplete="off" maxlength="30">
       <div class="mode-selector">
-        <label class="mode-option"><input type="radio" name="mode" value="namen" checked><div class="mode-card"><div class="mode-card-title">Klassiek</div><div class="mode-card-sub">Alleen namen</div></div></label>
-        <label class="mode-option"><input type="radio" name="mode" value="twee"><div class="mode-card"><div class="mode-card-title">Twee kaarten</div><div class="mode-card-sub">Nummers + namen</div></div></label>
+        <label class="mode-option"><input type="radio" name="mode" value="namen"><div class="mode-card"><div class="mode-card-title">Klassiek</div><div class="mode-card-sub">Alleen namen</div></div></label>
+        <label class="mode-option"><input type="radio" name="mode" value="twee" checked><div class="mode-card"><div class="mode-card-title">Twee kaarten</div><div class="mode-card-sub">Nummers + namen</div></div></label>
       </div>
       <button onclick="savePlayerName()">START</button>
       <button class="skip" onclick="savePlayerName(true)">Skip → speel anoniem</button>
@@ -969,7 +969,7 @@ function renderTwoCardsView() {
     '<div class="card-section"><div class="card-section-title">🎵 NUMMERS</div>' + buildHalf(0) + '</div>' +
     '<div class="scroll-hint">↓ Scroll voor de tweede kaart ↓</div><div class="card-section"><div class="card-section-title">👥 COLLEGAS</div>' + buildHalf(24) + '</div>' +
     '</div>' +
-    '<div class="footer"><button onclick="resetTweeCard()">⟲ Reset kaart</button></div>';
+    '<div class="footer" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;"><button onclick="resetTweeCard()">⟲ Reset kaart</button><button onclick="switchMode()" style="background:rgba(255,255,255,0.1);color:var(--cream);border:1px solid rgba(255,255,255,0.2);">↺ Andere modus</button></div>';
 }
 
 function toggleTweeCell(idx) {
@@ -1023,6 +1023,17 @@ function checkTweeBingo() {
     }
   }
   localStorage.setItem('bingo_achieved_twee', JSON.stringify(achieved));
+}
+
+function switchMode() {
+  if (!confirm("Naar de naam-invoer/modus-keuze schermwisselen? Je naam blijft bewaard, maar afvinkings worden gewist.")) return;
+  localStorage.removeItem("bingo_marked");
+  localStorage.removeItem("bingo_marked_twee");
+  localStorage.removeItem("bingo_achieved");
+  localStorage.removeItem("bingo_achieved_twee");
+  localStorage.removeItem("bingo_mode");
+  localStorage.removeItem("bingo_seed");
+  location.reload();
 }
 
 function resetTweeCard() {
