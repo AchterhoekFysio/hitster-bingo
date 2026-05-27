@@ -545,8 +545,11 @@
   .two-cards-wrap {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
     padding: 12px 0;
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
   }
   .card-section { display: flex; flex-direction: column; gap: 8px; }
   .card-section-title {
@@ -555,7 +558,9 @@
     font-size: 14px;
     letter-spacing: 0.08em;
     padding: 0 4px;
+    text-align: center;
   }
+  .scroll-hint { text-align: center; color: var(--gold); font-size: 12px; padding: 8px; opacity: 0.7; }
 
   .bingo-grid-twee {
     display: grid;
@@ -571,8 +576,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: 10px;
-    padding: 4px;
+    font-size: 9px;
+    padding: 3px;
     background: rgba(255,255,255,0.08);
     border-radius: 6px;
     color: var(--cream);
@@ -962,7 +967,7 @@ function renderTwoCardsView() {
     '<div class="player-greeting">Hoi <strong>' + escapeHtml(playerName) + '</strong>!</div>' +
     '<div class="two-cards-wrap">' +
     '<div class="card-section"><div class="card-section-title">🎵 NUMMERS</div>' + buildHalf(0) + '</div>' +
-    '<div class="card-section"><div class="card-section-title">👥 COLLEGAS</div>' + buildHalf(24) + '</div>' +
+    '<div class="scroll-hint">↓ Scroll voor de tweede kaart ↓</div><div class="card-section"><div class="card-section-title">👥 COLLEGAS</div>' + buildHalf(24) + '</div>' +
     '</div>' +
     '<div class="footer"><button onclick="resetTweeCard()">⟲ Reset kaart</button></div>';
 }
@@ -1196,8 +1201,6 @@ function renderHost() {
   `;
   if (!hostState.revealed) {
     initSpotifyController("spotify:track:" + c.spotifyId);
-  } else {
-    spotifyPause();
   }
 }
 
