@@ -527,6 +527,67 @@
     .cell.song { font-size: 9px; }
     .host-panel { padding: 16px; min-height: 40vh; }
   }
+
+  .anekdote-anim {
+    animation: slideInFromRight 0.55s cubic-bezier(.16,.78,.36,1.18);
+  }
+  @keyframes slideInFromRight {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .anekdote-placeholder {
+    font-style: italic;
+    color: var(--grey);
+    font-size: 18px;
+    padding: 20px 0;
+    text-align: center;
+  }
+  .two-cards-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 12px 0;
+  }
+  .card-section { display: flex; flex-direction: column; gap: 8px; }
+  .card-section-title {
+    color: var(--coral);
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    padding: 0 4px;
+  }
+
+  .bingo-grid-twee {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+  }
+  .cell-twee {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 10px;
+    padding: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    color: var(--cream);
+    cursor: pointer;
+    line-height: 1.15;
+    transition: all 0.15s;
+    font-weight: 600;
+    user-select: none;
+    overflow: hidden;
+    word-break: break-word;
+  }
+  .cell-twee:hover { background: rgba(255,255,255,0.15); transform: scale(1.02); }
+  .cell-twee.marked { background: var(--coral); color: white; }
+  .cell-twee.free { background: var(--gold); color: #222; font-size: 22px; cursor: default; }
+  .player-greeting { text-align: center; padding: 12px 0; color: var(--cream); font-size: 16px; }
 </style>
 </head>
 <body>
@@ -614,6 +675,17 @@ function mulberry32(seed) {
 
 function generateCardSquares(seed, mode) {
   const rng = mulberry32(seed);
+  if (mode === 'twee') {
+    const songs = COLLEAGUES.map(c => ({ type: 'lied', text: c.artiest + ' — ' + c.lied, match: 'lied:' + c.lied }));
+    const names = COLLEAGUES.map(c => ({ type: 'naam', text: c.first, match: 'naam:' + c.first }));
+    for (let i = songs.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [songs[i], songs[j]] = [songs[j], songs[i]]; }
+    for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
+    const songsCard = songs.slice();
+    const namesCard = names.slice();
+    for (let i = 0; i < 4; i++) songsCard.push(songs[Math.floor(rng() * songs.length)]);
+    for (let i = 0; i < 4; i++) namesCard.push(names[Math.floor(rng() * names.length)]);
+    return songsCard.concat(namesCard);
+  }
   if (mode === 'dubbel') {
     const pool = [];
     COLLEAGUES.forEach(c => {
@@ -775,7 +847,7 @@ function renderPlayerNameInput() {
       <input type="text" id="name-input" placeholder="Jouw naam" autocomplete="off" maxlength="30">
       <div class="mode-selector">
         <label class="mode-option"><input type="radio" name="mode" value="namen" checked><div class="mode-card"><div class="mode-card-title">Klassiek</div><div class="mode-card-sub">Alleen namen</div></div></label>
-        <label class="mode-option"><input type="radio" name="mode" value="dubbel"><div class="mode-card"><div class="mode-card-title">Dubbel</div><div class="mode-card-sub">Namen + nummers</div></div></label>
+        <label class="mode-option"><input type="radio" name="mode" value="twee"><div class="mode-card"><div class="mode-card-title">Twee kaarten</div><div class="mode-card-sub">Nummers + namen</div></div></label>
       </div>
       <button onclick="savePlayerName()">START</button>
       <button class="skip" onclick="savePlayerName(true)">Skip → speel anoniem</button>
@@ -802,6 +874,7 @@ function savePlayerName(skip) {
 }
 
 function renderPlayerCard() {
+  if ((localStorage.getItem('bingo_mode') || 'namen') === 'twee') { renderTwoCardsView(); return; }
   const app = document.getElementById('app');
   const name = localStorage.getItem('bingo_name') || 'Speler';
   const mode = localStorage.getItem('bingo_mode') || 'namen';
@@ -857,6 +930,101 @@ function renderPlayerCard() {
   }
   updateProgress();
   renderAchievedPatterns(achieved);
+}
+
+
+function renderTwoCardsView() {
+  const app = document.getElementById('app');
+  const playerName = localStorage.getItem('bingo_name') || 'Speler';
+  const seed = parseInt(localStorage.getItem('bingo_seed')) || Date.now();
+  const squares = generateCardSquares(seed, 'twee');
+  let marked = JSON.parse(localStorage.getItem('bingo_marked_twee') || '[]');
+  if (marked.length !== 48) {
+    marked = new Array(48).fill(false);
+    localStorage.setItem('bingo_marked_twee', JSON.stringify(marked));
+  }
+  const buildHalf = (offset) => {
+    let h = '<div class="bingo-grid-twee">';
+    for (let pos = 0; pos < 25; pos++) {
+      if (pos === 12) {
+        h += '<div class="cell-twee free">★</div>';
+      } else {
+        const idx = (pos < 12 ? pos : pos - 1) + offset;
+        const sq = squares[idx];
+        const isM = marked[idx] ? 'marked' : '';
+        h += '<div class="cell-twee ' + isM + '" onclick="toggleTweeCell(' + idx + ')">' + escapeHtml(sq.text) + '</div>';
+      }
+    }
+    h += '</div>';
+    return h;
+  };
+  app.innerHTML = '<div class="header"><h1>HITSTER<br>BINGO</h1><div class="sub">Achterhoek Fysio</div></div>' +
+    '<div class="player-greeting">Hoi <strong>' + escapeHtml(playerName) + '</strong>!</div>' +
+    '<div class="two-cards-wrap">' +
+    '<div class="card-section"><div class="card-section-title">🎵 NUMMERS</div>' + buildHalf(0) + '</div>' +
+    '<div class="card-section"><div class="card-section-title">👥 COLLEGAS</div>' + buildHalf(24) + '</div>' +
+    '</div>' +
+    '<div class="footer"><button onclick="resetTweeCard()">⟲ Reset kaart</button></div>';
+}
+
+function toggleTweeCell(idx) {
+  let marked = JSON.parse(localStorage.getItem('bingo_marked_twee') || '[]');
+  if (marked.length !== 48) marked = new Array(48).fill(false);
+  marked[idx] = !marked[idx];
+  localStorage.setItem('bingo_marked_twee', JSON.stringify(marked));
+  renderTwoCardsView();
+  checkTweeBingo();
+}
+
+function checkTweeBingo() {
+  let marked = JSON.parse(localStorage.getItem('bingo_marked_twee') || '[]');
+  if (marked.length !== 48) return;
+  const checkHalf = (offset) => {
+    const grid = [];
+    for (let r = 0; r < 5; r++) {
+      const row = [];
+      for (let c = 0; c < 5; c++) {
+        const pos = r * 5 + c;
+        if (pos === 12) row.push(true);
+        else row.push(!!marked[(pos < 12 ? pos : pos - 1) + offset]);
+      }
+      grid.push(row);
+    }
+    const p = { diagonaal: false, horizontaal: false, verticaal: false, vol: false };
+    if (grid[0][0]&&grid[1][1]&&grid[2][2]&&grid[3][3]&&grid[4][4]) p.diagonaal = true;
+    if (grid[0][4]&&grid[1][3]&&grid[2][2]&&grid[3][1]&&grid[4][0]) p.diagonaal = true;
+    for (let r = 0; r < 5; r++) if (grid[r].every(x => x)) p.horizontaal = true;
+    for (let c = 0; c < 5; c++) if ([0,1,2,3,4].every(r => grid[r][c])) p.verticaal = true;
+    if (grid.every(row => row.every(x => x))) p.vol = true;
+    return p;
+  };
+  const top = checkHalf(0);
+  const bot = checkHalf(24);
+  let achieved = JSON.parse(localStorage.getItem('bingo_achieved_twee') || '[]');
+  const all = [
+    { k: 'n-diag', v: top.diagonaal, l: '🎵 Diagonaal op nummers!' },
+    { k: 'n-horz', v: top.horizontaal, l: '🎵 Horizontale rij op nummers!' },
+    { k: 'n-vert', v: top.verticaal, l: '🎵 Verticale rij op nummers!' },
+    { k: 'n-vol', v: top.vol, l: '🎵 VOLLE NUMMER-KAART! 🏆' },
+    { k: 'c-diag', v: bot.diagonaal, l: '👥 Diagonaal op collega’s!' },
+    { k: 'c-horz', v: bot.horizontaal, l: '👥 Horizontale rij op collega’s!' },
+    { k: 'c-vert', v: bot.verticaal, l: '👥 Verticale rij op collega’s!' },
+    { k: 'c-vol', v: bot.vol, l: '👥 VOLLE NAMEN-KAART! 🏆' }
+  ];
+  for (const p of all) {
+    if (p.v && !achieved.includes(p.k)) {
+      achieved.push(p.k);
+      try { showBingoOverlay(p.l); } catch (e) { alert(p.l); }
+    }
+  }
+  localStorage.setItem('bingo_achieved_twee', JSON.stringify(achieved));
+}
+
+function resetTweeCard() {
+  if (!confirm('Reset je kaart? Alle aanvinks worden gewist.')) return;
+  localStorage.setItem('bingo_marked_twee', JSON.stringify(new Array(48).fill(false)));
+  localStorage.setItem('bingo_achieved_twee', JSON.stringify([]));
+  renderTwoCardsView();
 }
 
 function toggleCell(r, c, match) {
@@ -986,8 +1154,7 @@ function renderHost() {
   if (!hostState.revealed) {
     content = `
       <div class="host-panel">
-        <div class="label">Anekdote / Hint</div>
-        <div class="anekdote">${escapeHtml(c.anekdote)}</div>
+        ${hostState.anekdoteShown ? '<div class="label anekdote-anim">Anekdote / Hint</div><div class="anekdote anekdote-anim">' + escapeHtml(c.anekdote) + '</div>' : '<div class="anekdote-placeholder">🤐 Klik op de knop voor de hint</div>'}
         <div class="spotify-control"><button class="spotify-play-btn" onclick="spotifyToggle()"><svg viewBox="0 0 168 168" fill="currentColor"><path d="M83.996.277C37.747.277.253 37.77.253 84.019c0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l.001-.004zm38.404 120.78a5.217 5.217 0 01-7.18 1.73c-19.662-12.01-44.414-14.73-73.564-8.07a5.222 5.222 0 01-6.249-3.93 5.213 5.213 0 013.926-6.25c31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-.903-8.148-4.35a6.538 6.538 0 014.354-8.143c30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-.001zm.88-23.744c-3.223-1.914-8.54-2.09-11.618-1.156-.495.15-1.018-.13-1.167-.625-.149-.495.13-1.017.626-1.167 3.532-1.072 9.404-.865 13.115 1.338.445.264.591.838.327 1.282-.264.443-.84.59-1.283.328z"/></svg>Speel het nummer</button><span class="spotify-hint">Klik nog eens om te pauzeren</span><span class="now-playing" id="now-playing"><span class="np-icon"></span>Speelt nu</span></div>
       </div>
     `;
@@ -1015,7 +1182,7 @@ function renderHost() {
     <div class="nav-buttons">
       <button class="btn-prev" onclick="hostPrev()" ${hostState.round === 0 && !hostState.revealed ? 'disabled style="opacity:0.4"' : ''}>← Vorige</button>
       ${!hostState.revealed
-        ? `<button class="btn-reveal" onclick="hostNext()">✨ Onthul de naam</button>`
+        ? (!hostState.anekdoteShown ? `<button class="btn-reveal" onclick="hostNext()">💬 Toon anekdote</button>` : `<button class="btn-reveal" onclick="hostNext()">✨ Onthul de naam</button>`)
         : `<button class="btn-next" onclick="hostNext()">${hostState.round === total - 1 ? '🏆 Afsluiten' : 'Volgende ronde →'}</button>`
       }
     </div>
@@ -1036,11 +1203,17 @@ function renderHost() {
 
 function hostNext() {
   if (hostState.ended) return;
+  if (!hostState.anekdoteShown) {
+    hostState.anekdoteShown = true;
+    renderHost();
+    return;
+  }
   if (!hostState.revealed) {
     hostState.revealed = true;
   } else if (hostState.round < COLLEAGUES.length - 1) {
     hostState.round++;
     hostState.revealed = false;
+    hostState.anekdoteShown = false;
   } else {
     hostState.ended = true;
   }
@@ -1063,7 +1236,7 @@ function hostPrev() {
 }
 
 function restartHost() {
-  hostState = { round: 0, revealed: false, ended: false };
+  hostState = { round: 0, anekdoteShown: false, revealed: false, ended: false };
   renderHost();
 }
 
